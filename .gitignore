@@ -1,0 +1,39 @@
+# Exclude everything
+*
+
+# Include git files
+!/.gitignore
+!/CHANGELOG.md
+!/Pipfile
+!/LICENSE.md
+!/README.md
+
+# Include project files
+!/bin
+!/bin/.gitkeep
+!/bin/service
+!/bin/service/discord_stu.service
+!/bin/service/install.sh
+!/bin/service/uninstall.sh
+!/discord_stu
+!/discord_stu/__init__.py
+!/discord_stu/discord_stu.py
+!/discord_stu/library.py
+!/docs
+!/docs/INSTALLATION.md
+!/etc
+!/etc/.gitkeep
+!/etc/config
+!/etc/config/discord_stu.json.example
+!/etc/validation
+!/etc/validation/discord_stu.config.json
+!/tests
+!/tests/discord_stu_tests.py
+!/var
+!/var/.gitkeep
+!/var/cache
+!/var/cache/.gitkeep
+!/var/log
+!/var/log/.gitkeep
+!/var/pid
+!/var/pid/.gitkeep

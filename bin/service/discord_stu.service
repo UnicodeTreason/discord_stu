@@ -1,0 +1,15 @@
+[Unit]
+Description=<SERVICE_NAME>
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -c '. /etc/profile; <BINARY>'
+PIDFile=<PID_FILE>
+TimeoutStartSec=60
+TimeoutStopSec=90
+Restart=on-failure
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target

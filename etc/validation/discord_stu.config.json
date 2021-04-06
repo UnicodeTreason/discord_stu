@@ -1,0 +1,12 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "title": "discord_stu.config",
+    "description": "This schema is for script configuration for discord_stu.py",
+    "type": "object",
+    "properties": {
+        "discord_token": {"type": "string"},
+        "discord_guild": {"type": "string"}
+    },
+    "additionalProperties": false,
+    "required": ["discord_token", "discord_guild"]
+}
