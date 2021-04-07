@@ -1,0 +1,6 @@
+[style]
+# Use predefined style as base
+BASED_ON_STYLE=pep8
+
+# Increase column limit.
+COLUMN_LIMIT=140
