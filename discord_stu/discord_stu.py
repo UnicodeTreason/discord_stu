@@ -97,13 +97,18 @@ def bot(discord_token, discord_guild):
 
     # Message Watcher
     @bot.listen('on_message')
-    async def whatever_you_want_to_call_it(message):
+    async def message_listen(message):
         if message.author == bot.user:
             return
 
-        if 'Open the pod bay doors' in message.content:
-            response = 'Discord Stu, cannot do.'
+        if isinstance(message.channel, discord.channel.DMChannel):
+            response = 'Discord Stu, has no words for you.'
             await message.channel.send(response)
+
+        if isinstance(message.channel, discord.channel.TextChannel):
+            if 'Open the pod bay doors' in message.content:
+                response = 'Discord Stu, cannot do.'
+                await message.channel.send(response)
 
     bot.run(discord_token)
 
