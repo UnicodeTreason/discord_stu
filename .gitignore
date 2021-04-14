@@ -28,7 +28,7 @@
 !/etc/validation
 !/etc/validation/discord_stu.config.json
 !/tests
-!/tests/discord_stu_tests.py
+!/tests/.gitkeep
 !/var
 !/var/.gitkeep
 !/var/cache
