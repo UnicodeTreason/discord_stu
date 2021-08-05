@@ -5,19 +5,22 @@ import logging
 import os
 import re
 
+
 def load_config(path):
     with open(path, mode='r', encoding='utf-8', newline="\n") as f:
         config = json.load(f)
         return config
+
 
 def load_validation(dir, pattern):
     validation = {}
     with os.scandir(dir) as files:
         for entry in files:
             if entry.is_file():
-                if re.match(pattern,entry.name):
+                if re.match(pattern, entry.name):
                     validation[f'{entry.name}'] = load_config(entry.path)
     return validation
+
 
 class OneLineExceptionFormatter(logging.Formatter):
     def formatException(self, exc_info):
@@ -35,6 +38,7 @@ class OneLineExceptionFormatter(logging.Formatter):
             s = s.replace('\n', '')
         return s
 
+
 def logger_init(name, file):
     # formatter = OneLineExceptionFormatter('%(asctime)s|%(name)s|%(levelname)s|%(message)s')
     formatter = OneLineExceptionFormatter('%(asctime)s|%(name)s|%(process)d|%(levelname)s|%(message)s')
@@ -51,18 +55,21 @@ def logger_init(name, file):
     logger.addHandler(log_handler_console)
     logger.addHandler(log_handler_file)
 
-    logger.debug(f'Logging initialised')
+    logger.debug('Logging initialised')
 
     return logger
 
+
 def pid_cleanup(path):
     os.remove(path)
+
 
 def pid_read(path):
     existing_pid = None
     with open(path, 'r') as reader:
         existing_pid = reader.read()
     return existing_pid
+
 
 def pid_write(path):
     with open(path, 'w') as writer:
