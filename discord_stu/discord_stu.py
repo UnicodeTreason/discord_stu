@@ -5,10 +5,11 @@ import discord
 from discord.ext import commands
 import json
 import jsonschema
-# import markovify
+import markovify
 import os
 import signal
 import sys
+import re
 
 # Import modules
 import library
@@ -86,7 +87,39 @@ def bot(discord_token, discord_guild):
 
         for guild in bot.guilds:
             logger.debug(f'=={bot.guilds}==')
-        await bot.change_presence(activity=discord.Game(name='Human Simulator 2000'))
+        await bot.change_presence(activity=discord.Game(name='Human Simulator 2001'))
+
+    # Error Event
+    @bot.event
+    async def on_command_error(ctx, error):
+        if isinstance(error, commands.errors.CheckFailure):
+            await ctx.send('You do not have the correct role for this command.')
+
+    # Commands
+    @bot.command(name='speak')
+    @commands.has_role('developers/gods')
+    async def speak(ctx):
+        response = 'Uh... *WOOF*'
+        await ctx.send(response)
+
+    @bot.command(name='cache_clear')
+    @commands.has_role('developers/gods')
+    async def cache_clear(ctx):
+        response = 'Nuking cache from orbit.'
+        await ctx.send(response)
+
+        if os.path.exists(f'{DIR_VAR_CACHE}/cache_last_run'):
+            os.remove(f'{DIR_VAR_CACHE}/cache_last_run')
+
+        if os.path.exists(f'{DIR_VAR_CACHE}/cache_data'):
+            os.remove(f'{DIR_VAR_CACHE}/cache_data')
+
+    @bot.command(name='cache_msgs')
+    @commands.has_role('developers/gods')
+    async def cache_msgs(ctx):
+        response = 'Starting cache'
+        await ctx.send(response)
+        logger.debug(response)
 
         # Check for cache_last_run
         try:
@@ -115,13 +148,21 @@ def bot(discord_token, discord_guild):
             if str(channel.type) == 'text':
                 logger.debug(f'Processing channel {channel.category}::{channel.name}')
                 msg_channel = f'{channel.id}::{channel.name}'
-                async for message in channel.history(after=cache_last_run, oldest_first=True):
+                async for message in channel.history(limit=None, after=cache_last_run, oldest_first=True):
                     # Ignore self
                     if message.author == bot.user:
                         continue
 
                     msg_author = f'{message.author.id}::{message.author.name}'
                     msg_content_clean = f'{message.clean_content}'
+
+                    # Drop messages that are blank/empty
+                    if msg_content_clean == "":
+                        continue
+
+                    # Drop messages that begin with URLs
+                    if re.match('^http', msg_content_clean):
+                        continue
 
                     if msg_author not in cache_data:
                         cache_data[msg_author] = {}
@@ -140,33 +181,35 @@ def bot(discord_token, discord_guild):
         f.write(datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
         f.close()
 
-    # Error Event
-    @bot.event
-    async def on_command_error(ctx, error):
-        if isinstance(error, commands.errors.CheckFailure):
-            await ctx.send('You do not have the correct role for this command.')
-
-    # Commands
-    @bot.command(name='speak')
-    @commands.has_role('developers/gods')
-    async def speak(ctx):
-        response = 'Uh... *WOOF*'
+        response = 'Completing cache'
         await ctx.send(response)
+        logger.debug(response)
 
-    @bot.command(name='cache_clear')
-    @commands.has_role('developers/gods')
-    async def cache_clear(ctx):
-        if os.path.exists(f'{DIR_VAR_CACHE}/cache_last_run'):
-            os.remove(f'{DIR_VAR_CACHE}/cache_last_run')
-
-        if os.path.exists(f'{DIR_VAR_CACHE}/cache_data'):
-            os.remove(f'{DIR_VAR_CACHE}/cache_data')
-
-    @bot.command(name='cache_msgs')
-    @commands.has_role('developers/gods')
-    async def cache_msgs(ctx):
-        response = 'Starting cache'
+    @bot.command(name='polly')
+    async def polly(ctx):
+        response = 'Polly is processing...'
         await ctx.send(response)
+        logger.debug(response)
+
+        # Check for cache_data
+        try:
+            with open(f'{DIR_VAR_CACHE}/cache_data') as json_file:
+                cache_data = json.load(json_file)
+        except FileNotFoundError:
+            cache_data = {}
+
+        for user in cache_data:
+            logger.debug(f'User: {user}')
+            for channel in cache_data[user]:
+                logger.debug(f'Channel: {channel}')
+                channel_messages = '\n'.join(cache_data[user][channel])
+
+                # Build the model
+                text_model = markovify.NewlineText(channel_messages)
+
+                # Print three randomly-generated sentences of no more than 280 characters
+                for i in range(3):
+                    logger.debug(text_model.make_short_sentence(280, tries=100))
 
     # Message Watcher
     @bot.listen('on_message')
