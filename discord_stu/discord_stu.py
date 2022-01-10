@@ -120,68 +120,70 @@ def bot(discord_token, discord_guild):
         response = 'Starting cache'
         await ctx.send(response)
         logger.debug(response)
+        async with ctx.typing():
 
-        # Check for cache_last_run
-        try:
-            f = open(f'{DIR_VAR_CACHE}/cache_last_run', 'r')
-            cache_last_run_RAW = f.read()
+            # Check for cache_last_run
+            try:
+                f = open(f'{DIR_VAR_CACHE}/cache_last_run', 'r')
+                cache_last_run_RAW = f.read()
+                f.close()
+                cache_last_run = datetime.strptime(cache_last_run_RAW, '%Y-%m-%d %H:%M:%S')
+                logger.debug(f'CacheLastRun: {cache_last_run}')
+                await ctx.send(f'CacheLastRun: {cache_last_run}')
+            except FileNotFoundError:
+                cache_last_run = None
+                if os.path.exists(f'{DIR_VAR_CACHE}/cache_data'):
+                    os.remove(f'{DIR_VAR_CACHE}/cache_data')
+
+            # Check for cache_data
+            try:
+                with open(f'{DIR_VAR_CACHE}/cache_data') as json_file:
+                    cache_data = json.load(json_file)
+            except FileNotFoundError:
+                cache_data = {}
+
+            channels = bot.get_all_channels()
+            for channel in channels:
+                if channel.category is None:
+                    continue
+
+                if str(channel.type) == 'text':
+                    logger.debug(f'Processing channel {channel.category}::{channel.name}')
+                    msg_channel = f'{channel.id}::{channel.name}'
+                    async for message in channel.history(limit=None, after=cache_last_run, oldest_first=True):
+                        # Ignore self
+                        if message.author == bot.user:
+                            continue
+
+                        msg_author = f'{message.author.id}::{message.author.name}'
+                        msg_content_clean = f'{message.clean_content}'
+
+                        # Drop messages that are blank/empty
+                        if msg_content_clean == "":
+                            continue
+
+                        # Drop messages that begin with URLs
+                        if re.match('^http', msg_content_clean):
+                            continue
+
+                        if msg_author not in cache_data:
+                            cache_data[msg_author] = {}
+
+                        if msg_channel not in cache_data[msg_author]:
+                            cache_data[msg_author][msg_channel] = []
+
+                        cache_data[msg_author][msg_channel].append(msg_content_clean)
+
+            # Writeout cache_data
+            with open(f'{DIR_VAR_CACHE}/cache_data', 'w') as outfile:
+                json.dump(cache_data, outfile)
+
+            # Writeout cache_last_run
+            f = open(f'{DIR_VAR_CACHE}/cache_last_run', 'w')
+            f.write(datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
             f.close()
-            cache_last_run = datetime.strptime(cache_last_run_RAW, '%Y-%m-%d %H:%M:%S')
-            logger.debug(f'CacheLastRun: {cache_last_run}')
-        except FileNotFoundError:
-            cache_last_run = None
-            if os.path.exists(f'{DIR_VAR_CACHE}/cache_data'):
-                os.remove(f'{DIR_VAR_CACHE}/cache_data')
 
-        # Check for cache_data
-        try:
-            with open(f'{DIR_VAR_CACHE}/cache_data') as json_file:
-                cache_data = json.load(json_file)
-        except FileNotFoundError:
-            cache_data = {}
-
-        channels = bot.get_all_channels()
-        for channel in channels:
-            if channel.category is None:
-                continue
-
-            if str(channel.type) == 'text':
-                logger.debug(f'Processing channel {channel.category}::{channel.name}')
-                msg_channel = f'{channel.id}::{channel.name}'
-                async for message in channel.history(limit=None, after=cache_last_run, oldest_first=True):
-                    # Ignore self
-                    if message.author == bot.user:
-                        continue
-
-                    msg_author = f'{message.author.id}::{message.author.name}'
-                    msg_content_clean = f'{message.clean_content}'
-
-                    # Drop messages that are blank/empty
-                    if msg_content_clean == "":
-                        continue
-
-                    # Drop messages that begin with URLs
-                    if re.match('^http', msg_content_clean):
-                        continue
-
-                    if msg_author not in cache_data:
-                        cache_data[msg_author] = {}
-
-                    if msg_channel not in cache_data[msg_author]:
-                        cache_data[msg_author][msg_channel] = []
-
-                    cache_data[msg_author][msg_channel].append(msg_content_clean)
-
-        # Writeout cache_data
-        with open(f'{DIR_VAR_CACHE}/cache_data', 'w') as outfile:
-            json.dump(cache_data, outfile)
-
-        # Writeout cache_last_run
-        f = open(f'{DIR_VAR_CACHE}/cache_last_run', 'w')
-        f.write(datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
-        f.close()
-
-        response = 'Completing cache'
+        response = 'Completed cache'
         await ctx.send(response)
         logger.debug(response)
 
@@ -190,26 +192,31 @@ def bot(discord_token, discord_guild):
         response = 'Polly is processing...'
         await ctx.send(response)
         logger.debug(response)
+        async with ctx.typing():
 
-        # Check for cache_data
-        try:
-            with open(f'{DIR_VAR_CACHE}/cache_data') as json_file:
-                cache_data = json.load(json_file)
-        except FileNotFoundError:
-            cache_data = {}
+            # Check for cache_data
+            try:
+                with open(f'{DIR_VAR_CACHE}/cache_data') as json_file:
+                    cache_data = json.load(json_file)
+            except FileNotFoundError:
+                cache_data = {}
 
-        for user in cache_data:
-            logger.debug(f'User: {user}')
-            for channel in cache_data[user]:
-                logger.debug(f'Channel: {channel}')
-                channel_messages = '\n'.join(cache_data[user][channel])
+            for user in cache_data:
+                logger.debug(f'User: {user}')
+                for channel in cache_data[user]:
+                    logger.debug(f'Channel: {channel}')
+                    channel_messages = '\n'.join(cache_data[user][channel])
 
-                # Build the model
-                text_model = markovify.NewlineText(channel_messages)
+                    # Build the model
+                    text_model = markovify.NewlineText(channel_messages)
 
-                # Print three randomly-generated sentences of no more than 280 characters
-                for i in range(3):
-                    logger.debug(text_model.make_short_sentence(280, tries=100))
+                    # Print three randomly-generated sentences of no more than 280 characters
+                    for i in range(3):
+                        logger.debug(text_model.make_short_sentence(280, tries=100))
+
+        response = 'Completed Polly'
+        await ctx.send(response)
+        logger.debug(response)
 
     # Message Watcher
     @bot.listen('on_message')
